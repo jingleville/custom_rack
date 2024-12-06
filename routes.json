@@ -1,0 +1,16 @@
+{
+  "" : {
+    "/" : ["GET","BaseController#call"],
+    "/test" : ["GET","BaseController#test"]
+  },
+  "/user" : {
+    "/" : ["GET", "UsersController#index"],
+    "/:id" : ["GET", "UsersController#show"]
+  },
+  "/articles" : {
+    "/" : ["GET", "ArticlesController#index"],
+    "/:article_id" : {
+      "/comments" : ["GET", "CommentsController#index"]
+    }
+  }
+}
