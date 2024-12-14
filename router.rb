@@ -53,10 +53,10 @@ class RouteNode
   end
 end
 
-class Router
+module Router
   @@route = RouteTree.new
 
-  def self.draw(&block)
+  def self.draw(ancestor = nil, &block)
     instance_eval(&block)
     @@route
   end
@@ -71,5 +71,54 @@ class Router
 
   def self.routes
     @@route
+  end
+
+  def self.action_map
+    {
+      index:   { method: :get,    path: '/' },
+      show:    { method: :get,    path: '/:id' },
+      new:     { method: :get,    path: '/new' },
+      edit:    { method: :get,    path: '/:id/edit' },
+      create:  { method: :post,   path: '/' },
+      update:  { method: :patch,  path: '/:id' },
+      destroy: { method: :delete, path: '/:id' }
+    }
+  end
+
+  def self.resources(handler, options = {}, ancestor = nil, &block)
+    binding.irb
+
+    except_options = options[:except] || []
+    only_options = options[:only] || []
+
+    allowed_methods = %i[ index show new edit create update destroy ].difference(except_options)
+    allowed_methods = only_options.intersection(allowed_methods) if options[:only] != []
+
+    allowed_methods.map do |option|
+      option_data = action_map.fetch(option, nil)
+
+      next if option_data.nil?
+
+      full_path = ['/', handler, option_data[:path]].join
+      handler_controller = "#{handler.capitalize}Controller##{option}"
+
+      self.send(option_data[:method], full_path, handler_controller)
+    end
+
+    # Если есть вложенный блок, передаём контекст родительского ресурса
+    if block_given?
+      ancestor = { parent_name: name, parent_param: "#{name.to_s}_id" }
+      yield(ancestor)
+    end
+  end
+
+  def self.resource(handler, options = {})
+    if options[:except].nil?
+      options.merge({except: [:index]})
+    else
+      options[:except] = (options[:except] << :index).uniq
+    end
+
+    resources handler, options
   end
 end
